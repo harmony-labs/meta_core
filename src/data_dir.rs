@@ -3,19 +3,16 @@
 //! Provides functions to locate, create, and manage namespaced data files
 //! within the meta data directory. Any crate/plugin can use this module to
 //! store data at `~/.meta/<namespace>.json` or `~/.meta/<namespace>/`.
+//!
+//! Use `meta_core::meta_dir()` to get the directory path directly.
 
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 
-/// Get the meta data directory path (`~/.meta/` or `META_DATA_DIR`).
-pub fn meta_dir() -> PathBuf {
-    crate::meta_dir()
-}
-
 /// Ensure the meta data directory exists, creating it if needed.
 /// Returns the path to the directory.
 pub fn ensure_meta_dir() -> Result<PathBuf> {
-    let dir = meta_dir();
+    let dir = crate::meta_dir();
     if !dir.exists() {
         std::fs::create_dir_all(&dir)
             .with_context(|| format!("Failed to create meta data directory at {}", dir.display()))?;
@@ -28,13 +25,13 @@ pub fn ensure_meta_dir() -> Result<PathBuf> {
 /// The file may or may not exist. Use `store::read` to read with a default,
 /// or check existence manually.
 pub fn data_file(namespace: &str) -> PathBuf {
-    meta_dir().join(format!("{}.json", namespace))
+    crate::meta_dir().join(format!("{namespace}.json"))
 }
 
 /// Get the path for a namespaced subdirectory: `~/.meta/<namespace>/`.
 /// Creates the directory if it doesn't exist.
 pub fn data_subdir(namespace: &str) -> Result<PathBuf> {
-    let dir = meta_dir().join(namespace);
+    let dir = crate::meta_dir().join(namespace);
     if !dir.exists() {
         std::fs::create_dir_all(&dir)
             .with_context(|| format!("Failed to create data subdirectory at {}", dir.display()))?;

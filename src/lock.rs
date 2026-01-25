@@ -92,7 +92,7 @@ fn try_create_lock(lock_path: &Path) -> Result<LockGuard> {
 
     // Write current PID
     let pid = std::process::id();
-    writeln!(file, "{}", pid)
+    writeln!(file, "{pid}")
         .with_context(|| format!("Failed to write PID to lock file: {}", lock_path.display()))?;
 
     Ok(LockGuard {
