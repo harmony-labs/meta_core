@@ -27,7 +27,5 @@ pub fn meta_dir() -> PathBuf {
 }
 
 fn dirs_home() -> PathBuf {
-    std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("~"))
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp/meta-fallback"))
 }
