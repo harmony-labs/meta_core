@@ -285,6 +285,14 @@ impl PeerCapability {
     }
 }
 
+/// Error during capability negotiation.
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum NegotiationError {
+    /// A required layer cannot be provided by either peer.
+    #[error("layer {layer:?} unavailable: source cannot ship and target cannot generate")]
+    LayerUnavailable { layer: LayerKind },
+}
+
 /// Result of capability negotiation between two peers.
 #[derive(Debug, Clone, Default)]
 pub struct SyncPlan {
@@ -295,6 +303,7 @@ pub struct SyncPlan {
     pub generate_layers: Vec<LayerKind>,
 
     /// Layers that cannot be synced (neither ship nor generate).
+    /// Only populated when using `negotiate_permissive`.
     pub unavailable_layers: Vec<LayerKind>,
 }
 
@@ -313,7 +322,25 @@ impl SyncPlan {
 /// Negotiate what to ship between a source and target peer.
 /// 
 /// Returns a plan specifying what layers to ship and what to generate locally.
-pub fn negotiate(source: &PeerCapability, target: &PeerCapability) -> SyncPlan {
+/// Fails if any required layer cannot be provided.
+///
+/// Use `negotiate_permissive` if you want to allow incomplete syncs.
+pub fn negotiate(source: &PeerCapability, target: &PeerCapability) -> Result<SyncPlan, NegotiationError> {
+    let plan = negotiate_permissive(source, target);
+    
+    // Fail if any layer is unavailable
+    if let Some(&layer) = plan.unavailable_layers.first() {
+        return Err(NegotiationError::LayerUnavailable { layer });
+    }
+    
+    Ok(plan)
+}
+
+/// Negotiate sync plan, allowing incomplete syncs.
+/// 
+/// Unlike `negotiate`, this returns unavailable layers in the plan
+/// instead of failing. Use this when partial sync is acceptable.
+pub fn negotiate_permissive(source: &PeerCapability, target: &PeerCapability) -> SyncPlan {
     let mut plan = SyncPlan::default();
 
     // Always ship canonical
@@ -322,7 +349,7 @@ pub fn negotiate(source: &PeerCapability, target: &PeerCapability) -> SyncPlan {
     // For each derived layer, decide: ship, generate, or unavailable
     for kind in [LayerKind::Embedding, LayerKind::IndexData] {
         if !target.can_receive(kind) {
-            // Target can't use this layer at all
+            // Target can't use this layer at all - skip silently
             continue;
         }
 
@@ -410,7 +437,7 @@ mod tests {
         let source = PeerCapability::new("source", CapabilityTier::Full);
         let target = PeerCapability::new("target", CapabilityTier::Lite);
 
-        let plan = negotiate(&source, &target);
+        let plan = negotiate(&source, &target).unwrap();
 
         // Should ship everything since target can't generate
         assert!(plan.ship_layers.contains(&LayerKind::Canonical));
@@ -425,13 +452,28 @@ mod tests {
         let source = PeerCapability::new("source", CapabilityTier::Full);
         let target = PeerCapability::new("target", CapabilityTier::Full);
 
-        let plan = negotiate(&source, &target);
+        let plan = negotiate(&source, &target).unwrap();
 
         // Only ship canonical, target generates the rest
         assert!(plan.ship_layers.contains(&LayerKind::Canonical));
         assert!(!plan.ship_layers.contains(&LayerKind::Embedding));
         assert!(plan.generate_layers.contains(&LayerKind::Embedding));
         assert!(plan.generate_layers.contains(&LayerKind::IndexData));
+    }
+
+    #[test]
+    fn test_negotiate_impossible_fails() {
+        // Source can't ship, target can't generate
+        let source = PeerCapability::new("source", CapabilityTier::Thin);
+        let target = PeerCapability::new("target", CapabilityTier::Lite);
+
+        let result = negotiate(&source, &target);
+        assert!(result.is_err());
+        
+        // Permissive version should succeed with unavailable layers
+        let plan = negotiate_permissive(&source, &target);
+        assert!(!plan.is_complete());
+        assert!(!plan.unavailable_layers.is_empty());
     }
 
     #[test]

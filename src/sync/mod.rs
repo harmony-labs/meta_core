@@ -43,7 +43,7 @@
 //! // Negotiate sync between peers
 //! let source = PeerCapability::new("server", CapabilityTier::Full);
 //! let target = PeerCapability::new("client", CapabilityTier::Lite);
-//! let plan = negotiate(&source, &target);
+//! let plan = negotiate(&source, &target).unwrap();
 //!
 //! // Plan tells us what to ship vs. generate
 //! assert!(plan.ship_layers.contains(&LayerKind::Canonical));
@@ -54,7 +54,8 @@ mod hash;
 mod layer;
 
 pub use capability::{
-    negotiate, Capability, CapabilitySet, CapabilityTier, PeerCapability, SyncPlan,
+    negotiate, negotiate_permissive, Capability, CapabilitySet, CapabilityTier, 
+    NegotiationError, PeerCapability, SyncPlan,
 };
 pub use hash::{hash_content, hash_keyed, hash_multi, hash_reader, ContentHash, HashError};
 pub use layer::{Layer, LayerDiff, LayerKind, LayerSet};
@@ -202,7 +203,7 @@ mod tests {
         // Negotiate sync between peers
         let source = PeerCapability::new("server", CapabilityTier::Full);
         let target = PeerCapability::new("client", CapabilityTier::Lite);
-        let plan = negotiate(&source, &target);
+        let plan = negotiate(&source, &target).unwrap();
 
         // Plan tells us what to ship vs. generate
         assert!(plan.ship_layers.contains(&LayerKind::Canonical));
