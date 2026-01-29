@@ -29,3 +29,14 @@ pub fn meta_dir() -> PathBuf {
 fn dirs_home() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp/meta-fallback"))
 }
+
+// TODO: Sync protocol layer
+// - Layer 0: Canonical data (commits, documents)
+// - Layer 1: Embeddings (content-addressed vectors)
+// - Layer 2: Indices (HNSW for search)
+pub mod sync {
+    /// Placeholder for sync protocol implementation
+    pub fn protocol_version() -> &'static str {
+        "1.0.0-alpha"
+    }
+}
