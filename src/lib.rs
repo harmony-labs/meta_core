@@ -4,12 +4,14 @@
 //! - `data_dir` — Locate and create the `~/.meta/` data directory and namespaced files
 //! - `lock` — File-based locking with PID staleness detection and retry
 //! - `store` — Atomic JSON read/write with lock-protected updates
+//! - `sync` — Distributed sync protocol for multi-peer synchronization
 
 use std::path::PathBuf;
 
 pub mod data_dir;
 pub mod lock;
 pub mod store;
+pub mod sync;
 
 /// Default meta data directory name.
 const META_DIR_NAME: &str = ".meta";
@@ -28,15 +30,4 @@ pub fn meta_dir() -> PathBuf {
 
 fn dirs_home() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp/meta-fallback"))
-}
-
-// TODO: Sync protocol layer
-// - Layer 0: Canonical data (commits, documents)
-// - Layer 1: Embeddings (content-addressed vectors)
-// - Layer 2: Indices (HNSW for search)
-pub mod sync {
-    /// Placeholder for sync protocol implementation
-    pub fn protocol_version() -> &'static str {
-        "1.0.0-alpha"
-    }
 }
