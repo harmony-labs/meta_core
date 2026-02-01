@@ -14,8 +14,9 @@ use std::path::PathBuf;
 pub fn ensure_meta_dir() -> Result<PathBuf> {
     let dir = crate::meta_dir();
     if !dir.exists() {
-        std::fs::create_dir_all(&dir)
-            .with_context(|| format!("Failed to create meta data directory at {}", dir.display()))?;
+        std::fs::create_dir_all(&dir).with_context(|| {
+            format!("Failed to create meta data directory at {}", dir.display())
+        })?;
     }
     Ok(dir)
 }

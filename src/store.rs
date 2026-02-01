@@ -43,8 +43,8 @@ pub fn write_atomic<T: Serialize>(path: &Path, data: &T) -> Result<()> {
 
     let tmp_path = path.with_extension("tmp");
 
-    let json = serde_json::to_string_pretty(data)
-        .with_context(|| "Failed to serialize store data")?;
+    let json =
+        serde_json::to_string_pretty(data).with_context(|| "Failed to serialize store data")?;
 
     std::fs::write(&tmp_path, &json)
         .with_context(|| format!("Failed to write temp file: {}", tmp_path.display()))?;

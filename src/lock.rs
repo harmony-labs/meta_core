@@ -42,8 +42,9 @@ pub fn acquire(lock_path: &Path, max_retries: u32, retry_ms: u64) -> Result<Lock
     // Ensure parent directory exists
     if let Some(parent) = lock_path.parent() {
         if !parent.exists() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create lock directory: {}", parent.display()))?;
+            fs::create_dir_all(parent).with_context(|| {
+                format!("Failed to create lock directory: {}", parent.display())
+            })?;
         }
     }
 
