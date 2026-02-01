@@ -134,9 +134,33 @@ fn is_process_alive(pid: u32) -> bool {
     unsafe { libc::kill(pid as i32, 0) == 0 }
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
+fn is_process_alive(pid: u32) -> bool {
+    use std::ptr::null_mut;
+
+    // PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+    const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
+
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn OpenProcess(dwDesiredAccess: u32, bInheritHandle: i32, dwProcessId: u32) -> *mut std::ffi::c_void;
+        fn CloseHandle(hObject: *mut std::ffi::c_void) -> i32;
+    }
+
+    unsafe {
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if handle.is_null() {
+            false
+        } else {
+            CloseHandle(handle);
+            true
+        }
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
 fn is_process_alive(_pid: u32) -> bool {
-    // On non-Unix, conservatively assume the process is alive
+    // On other platforms, conservatively assume the process is alive
     true
 }
 
