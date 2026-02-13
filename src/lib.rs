@@ -7,6 +7,7 @@
 
 use std::path::PathBuf;
 
+pub mod config;
 pub mod data_dir;
 pub mod lock;
 pub mod store;
