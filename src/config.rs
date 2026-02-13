@@ -172,7 +172,7 @@ pub fn parse_meta_config(meta_path: &Path) -> anyhow::Result<(Vec<ProjectInfo>, 
     // Determine format from file extension
     let path_str = meta_path.to_string_lossy();
     let config: MetaConfig = if path_str.ends_with(".yaml") || path_str.ends_with(".yml") {
-        serde_yaml::from_str(&config_str)
+        serde_yml::from_str(&config_str)
             .with_context(|| format!("Failed to parse YAML config file: {}", meta_path.display()))?
     } else {
         serde_json::from_str(&config_str)
@@ -235,7 +235,7 @@ pub fn load_meta_defaults(start_dir: &Path) -> MetaDefaults {
 
     let path_str = config_path.to_string_lossy();
     let config: MetaConfig = if path_str.ends_with(".yaml") || path_str.ends_with(".yml") {
-        serde_yaml::from_str(&config_str).unwrap_or_default()
+        serde_yml::from_str(&config_str).unwrap_or_default()
     } else {
         serde_json::from_str(&config_str).unwrap_or_default()
     };
@@ -368,7 +368,11 @@ pub fn check_orphan_status(meta_dir: &Path) -> Option<OrphanWarning> {
 
     // Get the relative path from parent to current
     let relative = meta_dir.strip_prefix(parent_meta_dir).ok()?;
-    let relative_str = relative.to_string_lossy();
+    let relative_str = relative
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/");
 
     // Check if this path is in the flattened tree
     if flat_paths.iter().any(|p| p == &*relative_str) {
