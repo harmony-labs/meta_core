@@ -17,7 +17,7 @@ pub enum ProjectEntry {
     Simple(String),
     /// Extended format: object with repo, path, tags, and dependency info
     Extended {
-        /// Git remote URL. Required for all projects.
+        /// Git remote URL (optional for local-only projects).
         #[serde(default)]
         repo: Option<String>,
         #[serde(default)]
@@ -39,7 +39,7 @@ pub enum ProjectEntry {
 pub struct ProjectInfo {
     pub name: String,
     pub path: String,
-    /// Git remote URL. Should be present for all normal projects.
+    /// Git remote URL (optional for local-only projects).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repo: Option<String>,
     pub tags: Vec<String>,
@@ -172,7 +172,7 @@ pub fn parse_meta_config(meta_path: &Path) -> anyhow::Result<(Vec<ProjectInfo>, 
     // Determine format from file extension
     let path_str = meta_path.to_string_lossy();
     let config: MetaConfig = if path_str.ends_with(".yaml") || path_str.ends_with(".yml") {
-        serde_yml::from_str(&config_str)
+        serde_yaml_ng::from_str(&config_str)
             .with_context(|| format!("Failed to parse YAML config file: {}", meta_path.display()))?
     } else {
         serde_json::from_str(&config_str)
@@ -203,6 +203,7 @@ pub fn parse_meta_config(meta_path: &Path) -> anyhow::Result<(Vec<ProjectInfo>, 
                     (repo, resolved_path, tags, provides, depends_on, meta)
                 }
             };
+            let path = path.replace('\\', "/");
             ProjectInfo {
                 name,
                 path,
@@ -235,7 +236,7 @@ pub fn load_meta_defaults(start_dir: &Path) -> MetaDefaults {
 
     let path_str = config_path.to_string_lossy();
     let config: MetaConfig = if path_str.ends_with(".yaml") || path_str.ends_with(".yml") {
-        serde_yml::from_str(&config_str).unwrap_or_default()
+        serde_yaml_ng::from_str(&config_str).unwrap_or_default()
     } else {
         serde_json::from_str(&config_str).unwrap_or_default()
     };
