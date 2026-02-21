@@ -354,6 +354,26 @@ pub fn find_parent_meta_config(meta_dir: &Path) -> Option<(PathBuf, ConfigFormat
     find_meta_config(parent, None)
 }
 
+/// Find the root (topmost) meta directory by walking up through parent .meta configs.
+///
+/// Starting from `meta_dir`, repeatedly calls `find_parent_meta_config` until
+/// no more parents are found. Returns the topmost meta directory in the hierarchy.
+/// If `meta_dir` is already the root, returns it unchanged.
+pub fn find_root_meta_dir(meta_dir: &Path) -> PathBuf {
+    let mut current = meta_dir.to_path_buf();
+    loop {
+        match find_parent_meta_config(&current) {
+            Some((parent_config_path, _format)) => {
+                current = parent_config_path
+                    .parent()
+                    .unwrap_or(Path::new("."))
+                    .to_path_buf();
+            }
+            None => break current,
+        }
+    }
+}
+
 /// Check if a meta directory is tracked by its parent meta config.
 ///
 /// Returns `Some(OrphanWarning)` if there's a parent .meta that doesn't include
@@ -1095,5 +1115,65 @@ mod tests {
 
         let warning = result.unwrap();
         assert!(matches!(warning.parent_format, ConfigFormat::Yaml));
+    }
+
+    // ============================================================================
+    // find_root_meta_dir tests
+    // ============================================================================
+
+    #[test]
+    fn test_find_root_meta_dir_no_parent() {
+        // Single-level meta dir (no parent) → returns self
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(".meta"), r#"{"projects": {}}"#).unwrap();
+
+        let root = find_root_meta_dir(dir.path());
+        assert_eq!(root, dir.path());
+    }
+
+    #[test]
+    fn test_find_root_meta_dir_two_levels() {
+        // root → child: from child, should return root
+        let dir = tempfile::tempdir().unwrap();
+        let child = dir.path().join("child");
+        std::fs::create_dir(&child).unwrap();
+
+        std::fs::write(
+            dir.path().join(".meta"),
+            r#"{"projects": {"child": {"repo": "git@github.com:org/child.git", "meta": true}}}"#,
+        )
+        .unwrap();
+        std::fs::write(child.join(".meta"), r#"{"projects": {}}"#).unwrap();
+
+        let root = find_root_meta_dir(&child);
+        assert_eq!(root, dir.path());
+    }
+
+    #[test]
+    fn test_find_root_meta_dir_three_levels() {
+        // root → child → grandchild: from grandchild, should return root
+        let dir = tempfile::tempdir().unwrap();
+        let child = dir.path().join("child");
+        let grandchild = child.join("grandchild");
+        std::fs::create_dir_all(&grandchild).unwrap();
+
+        std::fs::write(
+            dir.path().join(".meta"),
+            r#"{"projects": {"child": {"repo": "git@github.com:org/child.git", "meta": true}}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            child.join(".meta"),
+            r#"{"projects": {"grandchild": {"repo": "git@github.com:org/gc.git", "meta": true}}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            grandchild.join(".meta"),
+            r#"{"projects": {}}"#,
+        )
+        .unwrap();
+
+        let root = find_root_meta_dir(&grandchild);
+        assert_eq!(root, dir.path());
     }
 }
