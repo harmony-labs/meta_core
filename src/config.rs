@@ -366,7 +366,7 @@ pub fn find_root_meta_dir(meta_dir: &Path) -> PathBuf {
             Some((parent_config_path, _format)) => {
                 current = parent_config_path
                     .parent()
-                    .unwrap_or(Path::new("."))
+                    .expect("config file path should always have a parent directory")
                     .to_path_buf();
             }
             None => break current,
