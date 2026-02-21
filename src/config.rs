@@ -1167,11 +1167,7 @@ mod tests {
             r#"{"projects": {"grandchild": {"repo": "git@github.com:org/gc.git", "meta": true}}}"#,
         )
         .unwrap();
-        std::fs::write(
-            grandchild.join(".meta"),
-            r#"{"projects": {}}"#,
-        )
-        .unwrap();
+        std::fs::write(grandchild.join(".meta"), r#"{"projects": {}}"#).unwrap();
 
         let root = find_root_meta_dir(&grandchild);
         assert_eq!(root, dir.path());
