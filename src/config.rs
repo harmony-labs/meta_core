@@ -156,11 +156,7 @@ pub fn find_meta_config(
                 return Some((candidate, format.clone()));
             }
         }
-        if let Some(parent) = current_dir.parent() {
-            current_dir = parent.to_path_buf();
-        } else {
-            return None;
-        }
+        current_dir = current_dir.parent()?.to_path_buf();
     }
 }
 
